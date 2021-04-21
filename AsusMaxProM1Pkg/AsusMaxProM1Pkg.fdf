@@ -25,13 +25,19 @@
 ################################################################################
 
 [FD.AsusMaxProM1Pkg_UEFI]
-BaseAddress   = 0xd0000000|gArmTokenSpaceGuid.PcdFdBaseAddress  # The base address of the Firmware in NOR Flash.
-Size          = 0x00200000|gArmTokenSpaceGuid.PcdFdSize         # The size in bytes of the FLASH Device
+BaseAddress   = 0x80200000|gArmTokenSpaceGuid.PcdFdBaseAddress  # The base address of the Firmware in NOR Flash.
+Size          = 0x00120000|gArmTokenSpaceGuid.PcdFdSize         # The size in bytes of the FLASH Device
 ErasePolarity = 1
 
 # This one is tricky, it must be: BlockSize * NumBlocks = Size
 BlockSize     = 0x00001000
-NumBlocks     = 0x200
+NumBlocks     = 0x1000
+BlockSize     = 0x200
+NumBlocks     = 0x900
+
+# 512 bytes of configuration header & 8 bytes of image header
+0x00000000|0x00120000
+gArmTokenSpaceGuid.PcdFvBaseAddress|gArmTokenSpaceGuid.PcdFvSize
 
 ################################################################################
 #
@@ -68,7 +74,7 @@ DATA = {
   0x00, 0x00, 0x00, 0x00                          # res5
 }
 
-0x00008000|0x001f8000
+0x00008000|0xff8000
 gArmTokenSpaceGuid.PcdFvBaseAddress|gArmTokenSpaceGuid.PcdFvSize
 FV = FVMAIN_COMPACT
 
@@ -84,10 +90,8 @@ FV = FVMAIN_COMPACT
 #
 ################################################################################
 
-[FV.FvMain]
-BlockSize          = 0x40
-NumBlocks          = 0         # This FV gets compressed so make it just big enough
-FvAlignment        = 8         # FV alignment and FV attributes setting.
+[FV.FVMAIN_COMPACT]
+FvAlignment        = 8
 ERASE_POLARITY     = 1
 MEMORY_MAPPED      = TRUE
 STICKY_WRITE       = TRUE
@@ -416,10 +420,6 @@ READ_LOCK_STATUS   = TRUE
   #
   # UEFI applications
   #
-  INF ShellPkg/Application/Shell/Shell.inf
-!ifdef $(INCLUDE_TFTP_COMMAND)
-  INF ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf
-!endif #$(INCLUDE_TFTP_COMMAND)
 
   #
   # Bds
@@ -626,6 +626,23 @@ READ_LOCK_STATUS   = TRUE
       SECTION UI = "UsbConfigDxe"
     }
 
+  # Windows (pretends to be uefi shell)
+  FILE APPLICATION = 7C04A583-9E3E-4f1c-AD65-E05268D0B4D1 {
+    SECTION PE32 = AsusMaxProM1Pkg/bootaa64.efi
+  }
+
+  FILE APPLICATION = 6D04A583-9E3E-4f1c-AD65-E05268D0B4D1 {
+    SECTION PE32 = AsusMaxProM1Pkg/bootmgfw.efi
+  }
+
+  FILE APPLICATION = 7E15B694-9E3E-4f1c-AD65-E05268D0B4D1 {
+    SECTION PE32 = AsusMaxProM1Pkg/bootmgr.efi
+  }
+
+  FILE APPLICATION = 7E15B694-9E3E-5g2d-FE76-E05268D0B4D1 {
+    SECTION PE32 = AsusMaxProM1Pkg/winload.efi
+  }
+
 [FV.FVMAIN_COMPACT]
 FvAlignment        = 8
 ERASE_POLARITY     = 1
@@ -655,6 +672,16 @@ READ_LOCK_STATUS   = TRUE
   FILE FREEFORM = DDE58710-41CD-4306-DBFB-3FA90BB1D2DD {
     SECTION UI = "uefiplat.cfg"
     SECTION RAW = AsusMaxProM1Pkg/uefiplat.cfg
+  }
+
+  FILE FREEFORM = c68502c0-00a6-45af-b8eb-12573bd346c0 {
+    SECTION UI = "BCD"
+    SECTION RAW = AsusMaxProM1Pkg/BCD
+  }
+
+  FILE FREEFORM = 3365bce5-bff1-45ce-81aa-069b36b87e43 {
+    SECTION UI = "boot.stl"
+    SECTION RAW = AsusMaxProM1Pkg/boot.stl
   }
 
 !include AsusMaxProM1Pkg/CommonFdf.fdf.inc
